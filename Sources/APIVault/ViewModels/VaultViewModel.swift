@@ -13,8 +13,11 @@ final class VaultViewModel {
             handleSelectedPresetChange()
         }
     }
+    var addedPresetIDs: Set<Preset.ID> = []
     var entries: [APIKeyEntry] = []
     var searchText = ""
+    var addPresetSearchText = ""
+    var isShowingAddPresetBrowser = false
     var draftLabel = ""
     var draftEnvironmentVariable = ""
     var draftKey = ""
@@ -26,23 +29,32 @@ final class VaultViewModel {
 
     private let keychain: KeychainManager
     private let entryStore: VaultEntryStore
+    private let addedPresetStore: AddedPresetStore
 
     init(
         presets: [Preset] = Preset.defaults,
         keychain: KeychainManager = .shared,
-        entryStore: VaultEntryStore = VaultEntryStore()
+        entryStore: VaultEntryStore = VaultEntryStore(),
+        addedPresetStore: AddedPresetStore = AddedPresetStore()
     ) {
         self.presets = presets
         self.keychain = keychain
         self.entryStore = entryStore
+        self.addedPresetStore = addedPresetStore
         entries = entryStore.loadEntries()
-        selectedPresetID = presets.first?.id
-        resetDraftForSelectedPreset()
         refreshKeyPresence()
+        addedPresetIDs = Self.initialAddedPresetIDs(
+            storedIDs: addedPresetStore.loadPresetIDs(),
+            entries: entries,
+            presets: presets
+        )
+        selectedPresetID = addedPresets.first?.id
+        isShowingAddPresetBrowser = addedPresets.isEmpty
+        resetDraftForSelectedPreset()
     }
 
     var selectedPreset: Preset? {
-        guard let selectedPresetID else { return presets.first }
+        guard let selectedPresetID else { return nil }
         return presets.first { $0.id == selectedPresetID }
     }
 
@@ -55,6 +67,12 @@ final class VaultViewModel {
         return entries(for: selectedPreset)
     }
 
+    var addedPresets: [Preset] {
+        presets.filter { preset in
+            addedPresetIDs.contains(preset.id) && !entries(for: preset).isEmpty
+        }
+    }
+
     func presets(in category: PresetCategory) -> [Preset] {
         presets.filter { preset in
             guard preset.category == category else { return false }
@@ -65,8 +83,53 @@ final class VaultViewModel {
         }
     }
 
+    func addedPresets(in category: PresetCategory) -> [Preset] {
+        addedPresets.filter { preset in
+            guard preset.category == category else { return false }
+            guard !searchText.isEmpty else { return true }
+
+            return preset.serviceName.localizedCaseInsensitiveContains(searchText)
+                || preset.environmentVariable.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    func addablePresets(in category: PresetCategory, matching query: String) -> [Preset] {
+        presets.filter { preset in
+            guard preset.category == category else { return false }
+            guard entries(for: preset).isEmpty else { return false }
+
+            let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedQuery.isEmpty else { return true }
+
+            return preset.serviceName.localizedCaseInsensitiveContains(trimmedQuery)
+                || preset.environmentVariable.localizedCaseInsensitiveContains(trimmedQuery)
+        }
+    }
+
+    func presetsWithEntries(in category: PresetCategory) -> [Preset] {
+        presets.filter { preset in
+            preset.category == category && !entries(for: preset).isEmpty
+        }
+    }
+
     func select(_ preset: Preset) {
+        isShowingAddPresetBrowser = false
         selectedPresetID = preset.id
+    }
+
+    func showAddPresetBrowser() {
+        isShowingAddPresetBrowser = true
+        addPresetSearchText = ""
+    }
+
+    func openPresetForKeyEntry(_ preset: Preset) {
+        select(preset)
+    }
+
+    func addPreset(_ preset: Preset) {
+        addedPresetIDs.insert(preset.id)
+        addedPresetStore.savePresetIDs(addedPresetIDs)
+        select(preset)
     }
 
     func refreshKeyPresence() {
@@ -110,6 +173,7 @@ final class VaultViewModel {
         }
 
         if errorMessage == nil {
+            addPreset(selectedPreset)
             entries.append(entry)
             persistEntries()
             draftKey = ""
@@ -161,10 +225,13 @@ final class VaultViewModel {
 
     func copyExportCommand(for entry: APIKeyEntry) async {
         guard let selectedPreset else { return }
+        await copyExportCommand(for: entry, preset: selectedPreset)
+    }
 
+    func copyExportCommand(for entry: APIKeyEntry, preset: Preset) async {
         let keychain = self.keychain
         await perform("Copied export command for \(entry.label).") {
-            let key = try await keychain.fetchKey(for: entry, preset: selectedPreset)
+            let key = try await keychain.fetchKey(for: entry, preset: preset)
             let command = "export \(entry.environmentVariable)=\"\(Self.shellEscaped(key))\""
             return command
         } onSuccess: { command in
@@ -244,5 +311,20 @@ final class VaultViewModel {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private static func initialAddedPresetIDs(
+        storedIDs: Set<Preset.ID>?,
+        entries: [APIKeyEntry],
+        presets: [Preset]
+    ) -> Set<Preset.ID> {
+        let validPresetIDs = Set(presets.map(\.id))
+        let entryPresetIDs = Set(entries.map(\.presetID)).intersection(validPresetIDs)
+
+        guard let storedIDs else {
+            return entryPresetIDs
+        }
+
+        return storedIDs.intersection(validPresetIDs).union(entryPresetIDs)
     }
 }

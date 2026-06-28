@@ -4,10 +4,11 @@ import SwiftUI
 @main
 struct APIVaultApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @State private var viewModel = VaultViewModel()
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(viewModel: viewModel)
                 .frame(minWidth: 980, minHeight: 620)
         }
         .defaultSize(width: 1120, height: 720)
@@ -15,6 +16,12 @@ struct APIVaultApp: App {
         .commands {
             CommandGroup(replacing: .newItem) { }
         }
+
+        MenuBarExtra("API Vault", systemImage: "key.fill") {
+            MenuBarVaultView(viewModel: viewModel)
+                .frame(width: 360)
+        }
+        .menuBarExtraStyle(.window)
     }
 }
 

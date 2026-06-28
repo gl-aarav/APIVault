@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var viewModel = VaultViewModel()
+    var viewModel: VaultViewModel
     @Namespace private var glassNamespace
 
     var body: some View {
@@ -10,7 +10,11 @@ struct ContentView: View {
                 SidebarView(viewModel: viewModel)
                     .navigationSplitViewColumnWidth(min: 250, ideal: 280, max: 340)
             } detail: {
-                PresetDetailView(viewModel: viewModel, namespace: glassNamespace)
+                if viewModel.isShowingAddPresetBrowser {
+                    AddPresetBrowserView(viewModel: viewModel)
+                } else {
+                    PresetDetailView(viewModel: viewModel, namespace: glassNamespace)
+                }
             }
             .searchable(text: Bindable(viewModel).searchText, placement: .toolbar, prompt: "Search presets")
             .toolbar {

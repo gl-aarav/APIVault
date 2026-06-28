@@ -6,14 +6,14 @@ struct SidebarView: View {
     var body: some View {
         List {
             ForEach(PresetCategory.allCases) { category in
-                let categoryPresets = viewModel.presets(in: category)
+                let categoryPresets = viewModel.addedPresets(in: category)
                 if !categoryPresets.isEmpty {
                     Section(category.rawValue) {
                         ForEach(categoryPresets) { preset in
                             PresetSidebarRow(
                                 preset: preset,
                                 storedKeyCount: viewModel.entries(for: preset).count,
-                                isSelected: viewModel.selectedPresetID == preset.id
+                                isSelected: viewModel.selectedPresetID == preset.id && !viewModel.isShowingAddPresetBrowser
                             )
                             .onTapGesture {
                                 viewModel.select(preset)
@@ -26,6 +26,17 @@ struct SidebarView: View {
         .listStyle(.sidebar)
         .navigationTitle("API Vault")
         .toolbar(removing: .sidebarToggle)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    viewModel.showAddPresetBrowser()
+                } label: {
+                    Label("Add API", systemImage: "plus")
+                }
+                .labelStyle(.iconOnly)
+                .help("Add API")
+            }
+        }
     }
 }
 
