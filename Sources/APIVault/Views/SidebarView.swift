@@ -4,7 +4,7 @@ struct SidebarView: View {
     var viewModel: VaultViewModel
 
     var body: some View {
-        List(selection: Bindable(viewModel).selectedPresetID) {
+        List {
             ForEach(PresetCategory.allCases) { category in
                 let categoryPresets = viewModel.presets(in: category)
                 if !categoryPresets.isEmpty {
@@ -12,9 +12,12 @@ struct SidebarView: View {
                         ForEach(categoryPresets) { preset in
                             PresetSidebarRow(
                                 preset: preset,
-                                storedKeyCount: viewModel.entries(for: preset).count
+                                storedKeyCount: viewModel.entries(for: preset).count,
+                                isSelected: viewModel.selectedPresetID == preset.id
                             )
-                            .tag(preset.id)
+                            .onTapGesture {
+                                viewModel.select(preset)
+                            }
                         }
                     }
                 }
@@ -29,9 +32,13 @@ struct SidebarView: View {
 private struct PresetSidebarRow: View {
     let preset: Preset
     let storedKeyCount: Int
+    let isSelected: Bool
 
     var body: some View {
-        Label {
+        HStack(spacing: 12) {
+            PresetIconView(preset: preset, size: 19)
+                .opacity(storedKeyCount > 0 ? 1 : 0.7)
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(preset.serviceName)
                     .font(.body.weight(.medium))
@@ -40,11 +47,26 @@ private struct PresetSidebarRow: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-        } icon: {
-            PresetIconView(preset: preset, size: 19)
-                .opacity(storedKeyCount > 0 ? 1 : 0.7)
+
+            Spacer(minLength: 8)
+
+            if storedKeyCount > 0 {
+                Text("\(storedKeyCount)")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+            }
         }
-        .badge(storedKeyCount > 0 ? "\(storedKeyCount)" : "")
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(.gray.opacity(0.22))
+            }
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         .help(storedKeyCount > 0 ? "\(storedKeyCount) keychain item(s)" : "No key saved yet")
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }
