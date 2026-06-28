@@ -9,11 +9,15 @@ struct PresetIconView: View {
         Group {
             if let image = PresetIconCache.shared.image(named: preset.iconAssetName) {
                 Image(nsImage: image)
+                    .renderingMode(.template)
                     .resizable()
                     .scaledToFit()
+                    .foregroundStyle(preset.accent.color)
             } else {
                 Image(systemName: preset.symbolName)
-                    .font(.system(size: size * 0.82, weight: .semibold))
+                    .resizable()
+                    .scaledToFit()
+                    .padding(size * 0.08)
                     .symbolRenderingMode(.monochrome)
                     .foregroundStyle(preset.accent.color)
             }
