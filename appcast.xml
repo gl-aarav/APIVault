@@ -9,6 +9,19 @@
       <title>Version 1.0.0</title>
       <pubDate>Wed, 01 Jul 2026 09:22:00 -0700</pubDate>
       <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[
+        <h3>API Vault v1.0.0 — Initial Release</h3>
+        <p>Welcome to the first official release of API Vault, a lightweight macOS utility designed to manage your API keys securely and access them quickly.</p>
+        
+        <h4>Key Features:</h4>
+        <ul>
+          <li><strong>Secure Keychain Storage:</strong> Your API keys are saved directly into the macOS Keychain with hardware-level security.</li>
+          <li><strong>Quick Export:</strong> Copy shell export commands (e.g. <code>export OPENAI_API_KEY="..."</code>) directly to your clipboard.</li>
+          <li><strong>Preset Gallery:</strong> Quick setup for popular services (OpenAI, Anthropic, AWS, Stripe, GitHub, etc.) or configure custom APIs.</li>
+          <li><strong>Menu Bar Companion:</strong> Access your keys instantly anytime via the macOS system menu bar menu.</li>
+          <li><strong>Native Updater:</strong> Seamless, secure background updates powered by the Sparkle framework.</li>
+        </ul>
+      ]]></description>
       <enclosure url="https://github.com/gl-aarav/APIVault/releases/download/v1.0.0/API%20Vault.dmg" 
                  type="application/octet-stream" 
                  sparkle:version="1.0.0" 
